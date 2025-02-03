@@ -7,6 +7,8 @@ OmniTune is a novel universal framework for query refinement using an LLM multi-
 The architecture of OmniTune consists of two main components:
 1. The Refinement Problem Wizard; helps users formulate a valid, universal refinement problem.
 2. The OmniTune Refinement Engine; builds upon the Actor-Critic paradigm adapted into an LLM multi-agent architecture, and used to effectively refine the input query.
+
+
 This repository contains the reproducibility package for running our demo.
 For any issues regarding reproducibility or anything else using the implementation, please feel free to create a GitHub issue or send an Email.
 
