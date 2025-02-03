@@ -65,7 +65,7 @@ The left half of the OmniTune system on Step 1:
 #### Step 2 - Constraint satisfaction objective generation:
 The left half of the OmniTune system on Step 2:
 
-<img width="650" alt="Step 2" src="https://github.com/user-attachments/assets/dd0a32b1-a677-4fe3-8966-0be37d063e79" />
+<img width="590" alt="Step 2" src="https://github.com/user-attachments/assets/dd0a32b1-a677-4fe3-8966-0be37d063e79" />
 
 - Provide your constraint in natural language in (5). 
 - Alternatively, to provide your own python implementation for constraint satisfaction press on "click here" (6).
