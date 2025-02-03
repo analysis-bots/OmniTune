@@ -1,3 +1,5 @@
+# OmniTune: A universal framework for query refinement via LLMs
+
 ![OmniTune](https://github.com/user-attachments/assets/3b4856d1-9c4b-4b79-bee9-b518a3deca58)
 
 This repository contains the reproducibility package for running our demo.
