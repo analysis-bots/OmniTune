@@ -46,14 +46,18 @@ The left half of the OmniTune system on Step 1:
 - Alternatively, to upload your own csv file press on the Browse Files button (2).
   A note will be shown in green below the button if successfully uploaded.
 - On the right side of the screen you should see a preview of the selected / uploaded database similar to below:
+  
   <img width="456" alt="Step 1 - Right Half" src="https://github.com/user-attachments/assets/bd272a14-8e83-439c-b8a2-227d2a97d9b3" />
+  
 - Insert your initial query to refine in the text box (3).
 - Press the Continue button (4)
 - On the right side of the screen you can see the results of your initial query on the database:
+  
   <img width="456" alt="Step 1 - Query Results" src="https://github.com/user-attachments/assets/d8f12fea-eb44-4399-a721-c0154a8e63b3" />
 
 #### Step 2 - Constraint satisfaction objective generation:
 The left half of the OmniTune system on Step 2:
+
 <img width="650" alt="Step 2" src="https://github.com/user-attachments/assets/dd0a32b1-a677-4fe3-8966-0be37d063e79" />
 
 - Provide your constraint in natural language in (5). 
