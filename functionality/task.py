@@ -7,6 +7,7 @@ from functionality.constraint import OutputConstraint, DiverseTopKSelectionConst
     DiversityCardinalityConstraint
 
 from enum import Enum
+import streamlit as st
 
 from .objectives import get_script_diff_func_sql, get_range_query_distance_function, \
     get_informative_query_validation_function, get_informative_diversity_validation_function, evaluate_constraints, \
@@ -45,7 +46,7 @@ class Task(ABC):
         self.key_rules = ""
         self.refinement_objective = lambda x: 1
         self.refinement_objective_str = ""
-        self.fairness_objective_str = ""
+        self.constraints_objective_str = ""
         self.validation_function = lambda x: False
         self.alterable_attributes = list(set(self.alterable_attributes_map['categorical'] + self.alterable_attributes_map['numeric']))
 
@@ -65,7 +66,7 @@ class Task(ABC):
         alterable_attributes_map = get_alterable_attributes(where_clause)
         return alterable_attributes_map
 
-    def evaluate_fairness(self, refined_query):
+    def evaluate_constraints_deviation(self, refined_query):
         out_df, is_exc = self.sql_engine.execute(refined_query)
         if is_exc:
             return f'query invalid. exception: {out_df}'
@@ -84,7 +85,7 @@ class TopKRefinementTask(Task):
         self.refinement_objective = get_script_diff_func_sql(query, df)
         self.refinement_objective_str = """   - For categorical predicates, the distance is based on 1-Jaccard similarity between the original set and the refined set.
         - For numeric predicates, the distance is based on absolute distance between the refined value and original value, divided by the original value."""
-        self.fairness_objective_str = "The degree of constraint satisfaction is measured on a scale of 0 to 1."
+        self.constraints_objective_str = "The degree of constraint satisfaction is measured on a scale of 0 to 1."
         max_k = max([c.k for c in constraints])
         self.validation_function = get_informative_top_k_validation_function(query, df, k=max_k)
 
@@ -106,7 +107,7 @@ class RangeQueryRefinementTask(Task):
         self.refinement_objective = get_range_query_distance_function(query, df)
         self.refinement_objective_str = """      - The refinement distance is based on (1 - Jaccard similarity) between the values in the original query's output dataset
 and the refined query's output dataset."""
-        self.fairness_objective_str = "To lower the disparity, the refined query's output should satisfy the constraints to the desired extent."
+        self.constraints_objective_str = "To lower the disparity, the refined query's output should satisfy the constraints to the desired extent."
         self.validation_function = get_informative_query_validation_function(query, df)
 
 
@@ -127,10 +128,10 @@ class DiversityConstraintsTask(Task):
         self.refinement_objective = get_pvl_dist_func(query, df)
         self.refinement_objective_str = "    - The distance is (1 - Jaccard similarity) between the original query's " \
                                         "output dataset and the refined query's output dataset."
-        self.fairness_objective_str = """The fairness is a score between 0 and 1, relative to the ratio between 
+        self.constraints_objective_str = """The constraints deviation is a score between 0 and 1, relative to the ratio between 
         absolute the distance number of records that satisfy the constraint, to by the required number of rows that must 
         satisfy it. Formally, if we denote the number of rows that satisfy the constraint as n, and the required number
-        of rows as k, the fairness score is calculated as max(0, (k - n) / k) for 'AT LEAST' constraints, and
+        of rows as k, the constraints deviation score is calculated as max(0, (k - n) / k) for 'AT LEAST' constraints, and
         max(0, (n - k) / k) for 'AT MOST' constraints."""
         self.validation_function = get_informative_diversity_validation_function(query, df)
         self.constraints_map = {c.attribute: c for c in constraints}
@@ -151,7 +152,7 @@ TASK_TYPE_TO_CONSTRAINT_CLASS_MAP = {
 
 class AgnosticTask:
     def __init__(self, name, dataset, query, constraints_str, refinement_objective_str,
-                 evaluate_fairness, refinement_objective, epsilon=0.0):
+                 evaluate_constraints_deviation, refinement_objective, epsilon=0.0):
         self.name = name
         self.df = dataset[self.name]
         self.original_query = query
@@ -159,17 +160,17 @@ class AgnosticTask:
         self.refinement_objective_str = refinement_objective_str
         self.validation_function = get_informative_query_validation_function(query, self.df)
         self.refinement_objective = refinement_objective
-        self.evaluate_fairness = evaluate_fairness
+        self.evaluate_constraints_deviation = evaluate_constraints_deviation
         self.alterable_attributes_map = self._get_alterable_attributes_map()
         self.numeric_attributes = self.alterable_attributes_map['numeric']
         self.categorical_attributes = self.alterable_attributes_map['categorical']
         self.alterable_attributes = list(set(self.alterable_attributes_map['categorical'] + self.alterable_attributes_map['numeric']))
         self.alterable_attributes_str = "\n".join([f"    - {v} ({str(self.df.dtypes[v])})" for v in self.alterable_attributes])
-        # TODO - Make sure the model **understands** the numeric type of each numeric attribute (int, float)!!!!!
+        # Make sure the model **understands** the numeric type of each numeric attribute (int, float)!!!!!
         self.categorical_attributes_str = "\n".join([f"""    - For categorical predicate of attribute {a}: Replacing / Removing / Adding values to the {a} attribute, 
         either concatenating predictes with {a} attribute with an "OR" operator, or using <attribute> IN (<value1>, ...).""" for a in self.categorical_attributes])
         self.numeric_attributes_str = "\n".join([f"""    - For numeric predicate of attribute {a}: Lowering / Raising values of {a} to create a valid range.""" for a in self.numeric_attributes])
-        self.epsilon = epsilon  # TODO
+        self.epsilon = round(epsilon, 2)
 
     def _get_alterable_attributes_map(self):
         where_clause = extract_where_clause(self.original_query)

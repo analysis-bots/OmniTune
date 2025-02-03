@@ -141,12 +141,19 @@ def get_informative_query_validation_function(original_query: str, dataset: pd.D
 
         where_clause = where_clause.replace('`', '"')
         # Extract the column names from the WHERE clause
-        attribute_matches = re.findall(r"(['\"]?)(\w+)\1(?=\s*(=|>|<|>=|<=|!=|IN|LIKE|IS))", where_clause, re.IGNORECASE)
+        attribute_matches = re.findall(r"(['\"]?)(\w+)\1(?=\s*(=|>|<|>=|<=|!=|NOT IN|IN|LIKE|IS))", where_clause, re.IGNORECASE)
         column_names = [match[1] for match in attribute_matches]
 
         clean_where_clause = where_clause.replace(')', ' ').replace('(', ' ')
 
         clean_column_names_map = {}
+
+        # Check if all column names are allowed
+        if not all(col in allowed_filter_attributes for col in column_names):
+            invalid_columns = [col for col in column_names if col not in allowed_filter_attributes and col != "NOT"]
+            info_str = f"The following attributes are not alterable: {invalid_columns}"
+            return False, info_str
+
 
         for col in column_names:
             if col not in original_dataset.columns:
@@ -155,6 +162,7 @@ def get_informative_query_validation_function(original_query: str, dataset: pd.D
             # for every column name replace all spaces with underscores
             clean_where_clause = clean_where_clause.replace(col, col.replace(' ', '_'))
             clean_column_names_map[col.replace(' ', '_')] = col
+
 
         is_prev_col = False
         is_prev_or = False
@@ -189,26 +197,22 @@ def get_informative_query_validation_function(original_query: str, dataset: pd.D
                 else:
                     is_prev_or = False
 
-        # Check if all column names are allowed
-        if not all(col in allowed_filter_attributes for col in column_names):
-            invalid_columns = [col for col in column_names if col not in allowed_filter_attributes]
-            info_str = f"The following columns are not alterable: {invalid_columns}"
-            return False, info_str
         # For every column name in the WHERE clause, get its filter values
         for col in column_names:
             # Check if the column is numerical or categorical
             if col in original_dataset.select_dtypes(include='number').columns:
-                filter_values = re.findall(rf"{col}\s*[<>]=?\s*(\d+)", where_clause)
-                filter_values = [float(v) for v in filter_values]
-
-                # Check if all filter values are between the min and max values of the column
-                min_val = original_dataset[col].min()
-                max_val = original_dataset[col].max()
-                if not all(min_val <= int(val) <= max_val for val in filter_values):
-                    invalid_values = [val for val in filter_values if not min_val <= int(val) <= max_val]
-                    info_str = f"Filter values for {col} are not within the column range: {invalid_values}.\n" \
-                               f"Valid column range: {min_val} - {max_val}"
-                    return False, info_str
+                continue
+                # filter_values = re.findall(rf"{col}\s*[<>]=?\s*(\d+)", where_clause)
+                # filter_values = [float(v) for v in filter_values]
+                #
+                # # Check if all filter values are between the min and max values of the column
+                # min_val = original_dataset[col].min()
+                # max_val = original_dataset[col].max()
+                # if not all(min_val <= int(val) <= max_val for val in filter_values):
+                #     invalid_values = [val for val in filter_values if not min_val <= int(val) <= max_val]
+                #     info_str = f"Filter values for {col} are not within the column range: {invalid_values}.\n" \
+                #                f"Valid column range: {min_val} - {max_val}"
+                #     return False, info_str
             else:
                 # TODO: Add possibility of IN (list) in the WHERE clause for categorical columns
                 if "IN" in where_clause:
@@ -243,7 +247,7 @@ def get_informative_query_validation_function(original_query: str, dataset: pd.D
         sql_engine = SQLEngine(original_dataset, keep_index=True)
         query_but_with_name_of_dataset_being_df = f'SELECT * FROM df WHERE{query.split("WHERE")[1]}'
         query_results, _ = sql_engine.execute(query_but_with_name_of_dataset_being_df)
-        if len(query_results) < 20:
+        if len(query_results) == 0:
             info_str = f"Query output size is less than 20 records"
             return False, info_str
         return True, ""
@@ -441,10 +445,16 @@ def evaluate_constraints(d_out, constraint_list):
 
 
 if __name__ == '__main__':
-    original_query = """SELECT * FROM students WHERE reason IN ('home') AND guardian = 'mother';"""
+    original_query = """SELECT region, AVG(UGPA) as avg_gpa, AVG(LSAT) as avg_lsat, COUNT(*) as size FROM law_students
+WHERE UGPA > 3.5 AND LSAT > 38
+GROUP BY region;"""
 
-    df = pd.read_csv("../datasets/students.csv")
-    ref_query = """SELECT * FROM students WHERE reason IN ('reputation') AND guardian = 'father';"""
+    df = pd.read_csv("../datasets/law_students.csv")
+    ref_query = """SELECT region, AVG(UGPA) as avg_gpa, AVG(LSAT) as avg_lsat, COUNT(*) as size FROM law_students
+WHERE UGPA > 2.9 AND LSAT > 33
+AND region NOT IN ('NE', 'GL', 'FW') 
+GROUP BY region;
+"""
 
     validate_query = get_informative_query_validation_function(original_query, df)
     print(validate_query(ref_query))

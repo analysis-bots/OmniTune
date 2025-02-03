@@ -79,10 +79,10 @@ def highlight_predicate_differences_getter(original_query):
 
         conditions_by_operator_refined = {operator: [cond for cond in refined_numerical if cond[1] == operator] for operator in operators}
         for operator in operators:
-            result_html = ""
+            results_html = []
             for cond in conditions_by_operator_orig[operator]:
                 if cond not in refined_numerical:
-                    result_html += f'<span style="color: red; text-decoration: line-through;">{cond[0]} {cond[1]} {cond[2]}</span> '
+                    result_html = f'<span style="color: red; text-decoration: line-through;">{cond[0]} {cond[1]} {cond[2]}</span> '
                     valid_refined_conditions = []
                     if ">" in operator:
                         valid_refined_conditions = conditions_by_operator_refined[">"] + conditions_by_operator_refined[">="]
@@ -92,34 +92,35 @@ def highlight_predicate_differences_getter(original_query):
                         valid_refined_conditions = conditions_by_operator_refined[operator]
                     for cond2 in valid_refined_conditions:
                         if cond2[0] == cond[0]:
-                            result_html += f'<span style="color: green;">{cond2[0]} {cond2[1]} {cond2[2]}</span>'
+                            results_html.append(result_html + f'<span style="color: green;">{cond2[0]} {cond2[1]} {cond2[2]}</span>')
                 else:
-                    result_html += f"{cond[0]} {cond[1]} {cond[2]}"
-            if len(result_html) > 0:
-                result_htmls_list.append(result_html)
+                    results_html.append(f"{cond[0]} {cond[1]} {cond[2]}")
+            if len(results_html) > 0:
+                result_htmls_list += results_html
 
-        result_html = f"{before_where}\n" + " AND ".join(result_htmls_list) + f"\n{after_where}"
+        result_html = f"{before_where} " + " AND ".join(result_htmls_list) + f"\n{after_where}"
         return result_html
     return highlight_predicate_differences
+
+
+def match_query(extracted_query):
+    query_pattern = re.compile(r"SELECT[\s\n]+[\w\s,.*()]+[\s\n]+FROM[\s\n]+\w+[\s\n]+WHERE([\s\n]+[\s\S]*)+")
+    match = query_pattern.match(extracted_query.strip())
+    return match
+
 
 def extract_code(text, language="sql"):
     # Define the start and end markers
     start_marker = f"```{language}"
     end_marker = "```"
-    finder_func = text.rfind
-    if language == 'sql' and 'refined query' in text.lower():
-        refinement_loc = text.lower().find('refined query')
-        text = text[refinement_loc:]
-        finder_func = text.find
-
     # Find the start and end positions
-    start_pos = finder_func(start_marker)
+    start_pos = text.rfind(start_marker)
     if start_pos == -1:
         start_marker = "\n\n"
-        start_pos = finder_func(start_marker) - 1
+        start_pos = text.rfind(start_marker) - 1
         end_pos = len(text)
     else:
-        end_pos = finder_func(end_marker, start_pos + len(start_marker))
+        end_pos = text.rfind(end_marker, start_pos + len(start_marker))
         if end_pos == -1:
             return ""
 
@@ -698,5 +699,13 @@ def normalize_weights(w_red, w_blue):
 #     return w_red, w_blue
 #
 if __name__ == '__main__':
-    Q = """SELECT * FROM law_students WHERE race = 'Caucasian' AND gpa <= 4.0"""
-    print(parse_where_predicates(Q))
+    original_query = """SELECT region_first, AVG(UGPA) as avg_gpa, AVG(LSAT) as avg_lsat, COUNT(*) as size FROM law_students
+    WHERE UGPA > 3.5 AND LSAT > 40
+    GROUP BY region_first;"""
+    ref_query = """SELECT region_first, AVG(UGPA) as avg_gpa, AVG(LSAT) as avg_lsat, COUNT(*) as size FROM law_students
+    WHERE UGPA > 3.4 AND LSAT > 39
+    GROUP BY region_first;
+    """
+    pred_dist_getter = highlight_predicate_differences_getter(original_query)
+    pred_diff = pred_dist_getter(ref_query)
+    print(pred_diff)
