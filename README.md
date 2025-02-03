@@ -73,7 +73,7 @@ The left half of the OmniTune system on Step 2:
 - Press the "Generate Constraints Satisfaction Objective" button (7)
 
 #### Step 3 - Refinement distance method selection: 
-<img width="650" alt="Step 3" src="https://github.com/user-attachments/assets/0ddb3180-deb5-4ecc-86ae-888d58a3ccaf" />
+<img width="490" alt="Step 3" src="https://github.com/user-attachments/assets/0ddb3180-deb5-4ecc-86ae-888d58a3ccaf" />
 
 - Once the message in (8) appears, you shuld see the generated function on the right side of the screen, and you may also edit it using the Edit button.
 - Select your preferred refienment distance method using the radio buttons (9).
