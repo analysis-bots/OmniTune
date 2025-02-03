@@ -47,7 +47,7 @@ More about OpenAI API models pricing is provided [here](https://openai.com/api/p
 #### Step 1 - Select database and insert query:
 The left half of the OmniTune system on Step 1:
 
-<img width="650" alt="Step 1 - Left Half" src="https://github.com/user-attachments/assets/8ddfb79a-787b-41d3-b323-36390a642b14" />
+<img width="650" alt="Step 1 - Left Half" src="https://github.com/user-attachments/assets/d9da3fe8-e6c9-4ed4-be04-bf866952f3a9" />
 
 - To select a database from the provided list, press on the toggle arrow (1). 
 - Alternatively, to upload your own csv file press on the Browse Files button (2).
@@ -59,7 +59,7 @@ The left half of the OmniTune system on Step 1:
 - Insert your initial query to refine in the text box (3).
 - Press the Continue button (4)
 - On the right side of the screen you can see the results of your initial query on the database:
-  
+
   <img width="456" alt="Step 1 - Query Results" src="https://github.com/user-attachments/assets/d8f12fea-eb44-4399-a721-c0154a8e63b3" />
 
 #### Step 2 - Constraint satisfaction objective generation:
@@ -72,9 +72,8 @@ The left half of the OmniTune system on Step 2:
   In that case a new tab would be automatically opened on the right side with corresponding instructions.
 - Press the "Generate Constraints Satisfaction Objective" button (7)
 
-
 #### Step 3 - Refinement distance method selection: 
-<img width="650" alt="Step 3" src="https://github.com/user-attachments/assets/6c86fd25-708c-49a6-83cc-20d0e79fa143" />
+<img width="650" alt="Step 3" src="https://github.com/user-attachments/assets/0ddb3180-deb5-4ecc-86ae-888d58a3ccaf" />
 
 - Once the message in (8) appears, you shuld see the generated function on the right side of the screen, and you may also edit it using the Edit button.
 - Select your preferred refienment distance method using the radio buttons (9).
