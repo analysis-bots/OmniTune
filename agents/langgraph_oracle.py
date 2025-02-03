@@ -50,28 +50,32 @@ class StreamlitChatWriter:
             self.placeholder_feedback = st.empty()
         self.chat_tab = chat_tab
         with self.chat_tab:
-            self.container = st.container(height=600)
+            self.container = st.container(height=650)
         self.highlight_predicate_differences = highlight_predicate_differences_getter(original_query)
         self.refinements_counter = 0
 
-    def show_query(self, query, fairness_deviation, refinement_distance):
+    def show_query(self, query, constraints_deviation, refinement_distance):
         with self.output_tab:
             if query.strip():
-                self.refinements_counter += 1
-                attempts = "attempts" if self.refinements_counter > 1 else "attempt"
-                self.placeholder_header.markdown(f"**Current Refinement (after {self.refinements_counter} {attempts}):**")
-                highlighted_diff = self.highlight_predicate_differences(query.strip())
+                if self.refinements_counter == 0:
+                    self.placeholder_header.markdown(
+                        f"**Original Query:**")
+                    highlighted_diff = query.strip()
+                else:
+                    attempts = "attempts" if self.refinements_counter > 1 else "attempt"
+                    self.placeholder_header.markdown(f"**Current Refinement (after {self.refinements_counter} {attempts}):**")
+                    highlighted_diff = self.highlight_predicate_differences(query.strip())
                 self.placeholder_query.markdown(
                     f'<div style="font-family: monospace; white-space: pre-wrap;">{highlighted_diff}</div>',
                     unsafe_allow_html=True,
                 )
                 self.placeholder_newline.markdown(" ")
-                self.placeholder_constraint_score.markdown(f"**Constraints Score:** {round(fairness_deviation, 2)}")
-                self.placeholder_refinement_score.markdown(f"**Refinement Distance:** {round(refinement_distance, 2)}")
-
+                self.placeholder_constraint_score.markdown(f"**Constraints Deviation Score:** {round(constraints_deviation, 2)}")
+                self.placeholder_refinement_score.markdown(f"**Refinement Distance Score:** {round(refinement_distance, 2)}")
+                self.refinements_counter += 1
     def show_constraints_feedback(self, constraint_feedback):
         with self.output_tab:
-            self.placeholder_feedback_header.markdown("**Critic Feedback:**")
+            self.placeholder_feedback_header.markdown("**Constraints Score explanation:**")
             self.placeholder_feedback.markdown("\n".join(constraint_feedback))
 
     def write_message(self, role, message):
@@ -80,15 +84,17 @@ class StreamlitChatWriter:
                 avatar = "🤖" if role == "Actor" else "🔎"
                 with st.chat_message(role, avatar=avatar):
                     st.write(f'**{role}:** {message}')
+        with open("log.txt", "a") as f:
+            f.write(f'{role}: {message}\n')
         self.chat_history.append({"role": role, "message": message})
 
-    def render_log(self):
-        self.container.empty()
-        with self.container:
-            for chat in self.chat_history:
-                avatar = "🤖" if chat["role"] == "Actor" else "🔎"
-                with st.chat_message(chat["role"], avatar=avatar):
-                    st.write(f'**{chat["role"]}:** {chat["message"]}')
+    def show_prompt(self, message):
+        with self.chat_tab:
+            with self.container:
+                avatar = "👤"
+                with st.chat_message('user', avatar=avatar):
+                    st.write(f'**user:** {message}')
+        self.chat_history.append({"role": 'user', "message": message})
 
     def reset_output(self):
         with self.output_tab:
@@ -150,7 +156,7 @@ def get_user_message(task: Task):
                                                   categorical_attributes_str=task.categorical_attributes_str,
                                                   numeric_attributes_str=task.numeric_attributes_str,
                                                   refinement_objective_str=task.refinement_objective_str,
-                                                  fairness_objective_str=task.fairness_objective_str,
+                                                  constraints_objective_str=task.constraints_objective_str,
                                                   key_rules_prompt=task.key_rules,
                                                   original_query=task.original_query,
                                                   epsilon=task.epsilon)
@@ -161,7 +167,7 @@ def get_user_message(task: Task):
                                        categorical_attributes_str=task.categorical_attributes_str,
                                        numeric_attributes_str=task.numeric_attributes_str,
                                        refinement_objective_str=task.refinement_objective_str,
-                                       fairness_objective_str=task.fairness_objective_str,
+                                       constraints_objective_str=task.constraints_objective_str,
                                        key_rules_prompt=task.key_rules,
                                        original_query=task.original_query)
     return usr_msg, usr_msg
@@ -185,7 +191,8 @@ def run_task(task: Union[Task, AgnosticTask],
 
     constraint_parser = ConstraintParser(
         input_dataset={task.name: task.df},
-        constraints_str=task.constraints_str
+        constraints_str=task.constraints_str,
+        original_query=task.original_query
     )
 
     @tool
@@ -263,10 +270,10 @@ def run_task(task: Union[Task, AgnosticTask],
                    f"In case the query is repeatedly invalid, please consider searching for a different path."
 
     @tool
-    def get_refinement_dist(refined_query):
+    def get_refinement_dist(refined_query: str):
         """
         Evaluates the refinement distance (lower is better) of the refined SQL SPJ query from the original query.
-        :param refined_query: the refined SQL query to evaluate the refinement distance for
+        :param refined_query: the refined SQL query to evaluate the refinement distance for (A string)
         :return: Evaluation of refinement diatance
         """
         refinement_dist = task.refinement_objective(refined_query)
@@ -307,14 +314,14 @@ def run_task(task: Union[Task, AgnosticTask],
             return f"Error executing code: {e}"
 
     @tool
-    def get_constraint_deviation(refined_query):
+    def get_constraints_deviation(refined_query):
         """
         Evaluates the deviation of constraint satisfaction (lower is better) of the refined query's output.
-        :param refined_query: the refined SQL query to evaluate the fainress deviation for
-        :return: Evaluation of fairness deviation
+        :param refined_query: the refined SQL query to evaluate the constraints deviation for
+        :return: Evaluation of constraints deviation
         """
         if isinstance(task, AgnosticTask):
-            deviation = task.evaluate_fairness(refined_query)
+            deviation = task.evaluate_constraints_deviation(refined_query)
         else:
             sql_engine = SQLEngine(task.df)
             out_df, is_exc = sql_engine.execute(refined_query)
@@ -331,58 +338,21 @@ def run_task(task: Union[Task, AgnosticTask],
         task_logger.log(critic_log)
         return dev_str
 
-    @tool
-    def was_query_tried_already(refined_query):
-        """
-        Checks if the refined query was already tried and failed.
-        :param refined_query: the refined SQL query to check
-        :return: Indication if the refined query was already tried
-        """
-        if query_hash_map.is_present(refined_query):
-            critic_log.append_content("Critic", f"Query:\n{refined_query}\n\nwas already tried before.")
-            task_logger.log(critic_log)
-            return f"Query:\n{refined_query}\n\nwas already tried before."
-        else:
-            query_hash_map.insert(refined_query)
-            critic_log.append_content("Critic", f"Query:\n{refined_query}\n\nwas not tried yet.")
-            task_logger.log(critic_log)
-            return f"Query:\n{refined_query}\n\nwas not tried yet."
-
-    def is_query_valid_and_deviation_under_epsilon(state: ActorCriticAgentState):
-        for msg in state['actor_messages'][::-1]:
-            if isinstance(msg, HumanMessage) or isinstance(msg, RemoveMessage):
-                continue
-            content = msg.content
-            if len(content) == 0:
-                tool_calls = msg.tool_calls
-                for tool_call in tool_calls:
-                    if tool_call['name'] == "was_query_tried_already":
-                        content = tool_call['args']['refined_query']
-                        break
-            extracted_query = extract_query(content)
-            if len(content) > 0 and extracted_query is not None:
-                refined_query = extracted_query
-                is_valid, _ = task.validation_function(refined_query)
-                if is_valid:
-                    deviation = task.evaluate_fairness(refined_query)
-                    return deviation <= task.epsilon
-        return False
     if is_agnostic:
         actor_prompt, critic_prompt = agnostic_actor_system_prompt, agnostic_critic_system_prompt
     else:
         actor_prompt, critic_prompt = get_system_prompts(task)
-    abot = ActorCriticAgent([get_columns_info_string, get_specific_column_info_string, was_query_tried_already,
+
+    abot = ActorCriticAgent([get_columns_info_string, get_specific_column_info_string,
                              execute_python_code_line_with_dataframe],
-                            [validate_query, get_constraint_deviation, get_refinement_dist,
-                             execute_python_code_line_with_dataframe],
+                            [validate_query, get_constraints_deviation, get_refinement_dist],
                             original_query=task.original_query,
-                            validation_function=task.validation_function, evaluation_function=task.evaluate_fairness,
+                            validation_function=task.validation_function, evaluation_function=task.evaluate_constraints_deviation,
                             refinement_objective=task.refinement_objective, epsilon=task.epsilon,
                             logger=task_logger, chat_writer=chat_writer,
                             constraint_str=task.constraints_str,
                             constraint_parser=constraint_parser,
-                            actor_system=actor_prompt, critic_system=critic_prompt,
-                            is_sufficient_func=is_query_valid_and_deviation_under_epsilon)
+                            actor_system=actor_prompt, critic_system=critic_prompt)
     abot.graph.config = {'recursion_limit': 1000}
     abot.display_graph()
     if is_agnostic:
@@ -390,7 +360,7 @@ def run_task(task: Union[Task, AgnosticTask],
     else:
         actor_user_msg, critic_user_msg = get_user_message(task)
     orig_critic_user_msg = critic_user_msg
-    fairness_deviation = float('inf')
+    constraints_deviation = float('inf')
     refinement_dist = float('inf')
     best_query = None
     i = 0
@@ -402,7 +372,6 @@ def run_task(task: Union[Task, AgnosticTask],
                               f"completley satisfies ALL fairness constraints, as well as refinement distance value lower than " \
                               f"any of the above. The output must end with a valid SPJ Query given the above instructions, " \
                               f"in the format:\n```sql\n<your refined query>\n```\n"
-        # print(f"Task: {task.name}, Epsilon: {task.epsilon}, Iteration: {i + 1}\n")
         split_delimiter = "\n" + "=" * 50 + "\n"
         previous_results_and_scores_split = previous_results_and_scores.split(split_delimiter)
         previous_results_and_scores = split_delimiter + split_delimiter.join(
@@ -410,8 +379,6 @@ def run_task(task: Union[Task, AgnosticTask],
         if i == 0:
             abot.previous_results = previous_results_and_scores
 
-        # print(f"User Message:\n{orig_user_msg}")
-        # chat_writer.write("Instructions", orig_user_msg)
         current_prev_res_prompt = prev_res_prompt_template(abot.previous_results) if i > 0 else ""
         critic_usr_msg = f"{current_prev_res_prompt}\n\nTask Description:\n{orig_critic_user_msg}"
         user_log.append_content("User", split_delimiter + f"\nPrevious results provided here\n" + split_delimiter)
@@ -431,18 +398,16 @@ def run_task(task: Union[Task, AgnosticTask],
         Q = extract_code(result)
         if not re.match(r'^SELECT.*FROM.*', Q):
             actor_user_msg += f"\n\nThoughts:\n{Q}"
-            # print(f"Task: {task.name}, Epsilon: {task.epsilon}")
-            # print(f"Thoughts:\n{Q}")
             user_log.append_content("Agent", f"Thoughts:\n{Q}")
             task_logger.log(user_log)
             continue
         i += 1
-        fairness_deviation = task.evaluate_fairness(Q)
+        constraints_deviation = task.evaluate_constraints_deviation(Q)
         previous_results_and_scores += f"Query:\n{Q}\n\n"
         is_query_valid, info_str = task.validation_function(Q)
-        if is_query_valid and fairness_deviation <= task.epsilon:
+        if is_query_valid and constraints_deviation <= task.epsilon:
             new_refinement_dist = task.refinement_objective(Q)
-            previous_results_and_scores += f"Valid: True\nFairness Deviation: {round(fairness_deviation, 2)}\n" \
+            previous_results_and_scores += f"Valid: True\nConstraints Deviation: {round(constraints_deviation, 2)}\n" \
                                            f"Refinement Distance: {round(new_refinement_dist, 2)}\n\n" + "=" * 50 + "\n"
             if new_refinement_dist < refinement_dist:
                 refinement_dist = new_refinement_dist
@@ -453,7 +418,7 @@ def run_task(task: Union[Task, AgnosticTask],
                 user_log.append_content("User", critic_usr_msg)
                 task_logger.log(user_log)
                 main_log.append_content("Main", f"Refined query:\n{Q}\n\n"
-                                                f"Fairness deviation: {round(fairness_deviation, 2)}\n"
+                                                f"Constraints deviation: {round(constraints_deviation, 2)}\n"
                                                 f"Refinement distance: {round(refinement_dist, 2)}")
                 task_logger.log(main_log)
             else:
@@ -462,12 +427,12 @@ def run_task(task: Union[Task, AgnosticTask],
                 user_log.append_content("User", critic_usr_msg)
                 task_logger.log(user_log)
                 main_log.append_content("Main",
-                                        f"Refined query:\n{Q}\n\nFairness deviation: {round(fairness_deviation, 2)}"
+                                        f"Refined query:\n{Q}\n\nConstraints deviation: {round(constraints_deviation, 2)}"
                                         f"\nRefinement distance: {round(refinement_dist, 2)}")
                 task_logger.log(main_log)
         else:
             if is_query_valid:
-                previous_results_and_scores += f"Valid: True\nFairness Deviation: {round(fairness_deviation, 2)}\n\n" + "=" * 50 + "\n"
+                previous_results_and_scores += f"Valid: True\nConstraints Deviation: {round(constraints_deviation, 2)}\n\n" + "=" * 50 + "\n"
                 critic_usr_msg = orig_critic_user_msg + prev_res_prompt_template(previous_results_and_scores) + \
                           f"Provide instructions for the next refinement such that it will" \
                           f" avoid getting stuck in a local minima by exploring different, " \
@@ -475,7 +440,7 @@ def run_task(task: Union[Task, AgnosticTask],
                 user_log.append_content("User", critic_usr_msg)
                 task_logger.log(user_log)
                 main_log.append_content("Main",
-                                        f"Refined query:\n{Q}\n\nFairness deviation: {round(fairness_deviation, 2)}")
+                                        f"Refined query:\n{Q}\n\nConstraints deviation: {round(constraints_deviation, 2)}")
                 task_logger.log(main_log)
             else:
                 previous_results_and_scores += f"Valid: False\nValidation Error: {info_str}\n\n" + "=" * 50 + "\n"
@@ -492,6 +457,5 @@ def run_task(task: Union[Task, AgnosticTask],
                                     f"\n\n{best_query}\n\n"
                                     f"Best refinement distance: {round(refinement_dist, 2)}")
     task_logger.log(main_log)
-    # Don't forget to restore stdout after the function completes
-    return best_query, constraint_feedback, chat_writer, fairness_deviation, refinement_dist
+    return best_query, constraint_feedback, chat_writer, constraints_deviation, refinement_dist
 

@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import add_messages, StateGraph, END
 from tools.sql_engine import SQLEngineAdvanced
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, MODEL
 from tools.constants import IMPLEMENTER_SYSTEM_PROMPT, REFINEMENT_QUERY_DESCRIPTION, REFINEMENT_RESULT_DESCRIPTION, \
     REFINEMENT_QUERY_DISTANCE, REFINEMENT_RESULT_DISTANCE
 
@@ -15,6 +15,7 @@ from tools.utils import extract_code, get_d_in_info, get_query_where_columns
 
 REFINEMENT_DESCRIPTIONS = {'Query': REFINEMENT_QUERY_DESCRIPTION, 'Result': REFINEMENT_RESULT_DESCRIPTION}
 REFINEMENT_FUNCTIONS = {'Query': REFINEMENT_QUERY_DISTANCE, 'Result': REFINEMENT_RESULT_DISTANCE}
+
 
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
@@ -26,15 +27,13 @@ class ImplementationAgent:
     """
 
     def __init__(self, original_query: str, d_in_dict: dict[str, pd.DataFrame]):
-        self.model = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4o-mini")
+        self.model = ChatOpenAI(api_key=OPENAI_API_KEY, model=MODEL)
         self.system_prompt = SystemMessage(content=IMPLEMENTER_SYSTEM_PROMPT)
         self.original_query = original_query
         self.sql_engine = SQLEngineAdvanced(d_in_dict)
         self.d_in_dict = d_in_dict
         self.original_output = self.execute(original_query)
-        # TODO - How the HELL should I extract the relevant column names from the user's prompt????
         columns_of_interest = get_query_where_columns(original_query)
-        # TODO - How the HELL should I extract the relevant column names from the user's prompt????
         self.dataset_description = get_d_in_info(d_in_dict, columns_of_interest)
         @tool
         def get_columns_and_types():
@@ -44,18 +43,17 @@ class ImplementationAgent:
             """
             return self.get_columns_names_and_types()
         @tool
-        def get_specific_column_info(df_name: str, column_name: str):
+        def get_specific_column_info(column_name: str):
             """
-            Returns a string containing information about the given column name from the required dataframe, such as:
+            Returns a string containing information about the given column name from the result dataframe, such as:
             - unique values for categorical columns
             - min and max values for numerical columns
-            :param df_name: The name of the dataframe you would like to get information about
             :param column_name: The attribute name of the column you would like to get information about
             :return: A string containing information about the column, such as:
             - unique values for categorical columns
             - min and max values for numerical columns
             """
-            return self.get_specific_column_info_string(df_name, column_name)
+            return self.get_specific_column_info_string(column_name)
         tools = [get_columns_and_types, get_specific_column_info]
         self.tools = {t.name: t for t in tools}
         self.model = self.model.bind_tools(tools)
@@ -106,7 +104,7 @@ class ImplementationAgent:
             results.append(ToolMessage(tool_call_id=t['id'], name=t['name'], content=str(result)))
         return {'messages': results}
 
-    def execute(self, query: str):
+    def execute(self, query: str) -> pd.DataFrame:
         resp_df, error = self.sql_engine.execute(query)
         if error:
             return "An error occurred: " + resp_df
@@ -114,52 +112,50 @@ class ImplementationAgent:
 
     def get_columns_names_and_types(self):
         """
-        Returns A List of column names and their types by dataframe
+        Returns A List of column names and their types in the result dataframe
         :return: A string of the names of the columns and their types
         """
-        ret_str = ""
-        for key, value in self.d_in_dict.items():
-            col_names_to_types = {col: str(value[col].dtype) for col in value.columns}
-            ret_str += f"Dataset: {key}\n"
-            ret_str += "\n".join([f"{col}: {col_type}" for col, col_type in col_names_to_types.items()])
-            ret_str += "\n"
+        ret_str = " - "
+        col_names_to_types = {col: str(self.original_output[col].dtype) for col in self.original_output.columns}
+        ret_str += "\n - ".join([f"{col}: {col_type}" for col, col_type in col_names_to_types.items()])
         return ret_str
 
-    def get_specific_column_info_string(self, df_name: str, column_name: str):
+    def get_specific_column_info_string(self, column_name: str):
         """
-        Returns a string containing information about the given column name from required dataframe, such as:
+        Returns a string containing information about the given column name from result dataframe, such as:
         - unique values for categorical columns
         - min and max values for numerical columns
-        :param df_name: The name of the dataframe you would like to get information about
         :param column_name: The attribute name of the column you would like to get information about
         :return: A string containing information about the column, such as:
         - unique values for categorical columns
         - min and max values for numerical columns
         """
-        df = self.d_in_dict[df_name]
-        if df[column_name].dtype == 'object':
-            return f"Unique values for column {column_name} in dataset {df_name} are: {df[column_name].unique()}"
-        elif df[column_name].dtype == 'int64' or df[column_name].dtype == 'float64':
-            return f"Min value for column {column_name} in dataset {df_name} is: {df[column_name].min()}\n" \
-                   f"Max value for column {column_name} in dataset {df_name} is: {df[column_name].max()}"
+
+        if self.original_output[column_name].dtype == 'object':
+            return f"Unique values for column {column_name} are: {self.original_output[column_name].unique()}"
+        elif self.original_output[column_name].dtype == 'int64' or self.original_output[column_name].dtype == 'float64':
+            return f"Min value for column {column_name} is: {self.original_output[column_name].min()}\n" \
+                   f"Max value for column {column_name} is: {self.original_output[column_name].max()}"
         else:
-            return f"Column {column_name} in dataset {df_name} is of type {df[column_name].dtype}"
+            return f"Column {column_name} is of type {self.original_output[column_name].dtype}"
 
-    def generate_fairness_objective(self, function_description: str):
+    def generate_constraints_objective(self, function_description: str):
         """
-        Generates the fairness objective function.
-        :return: The fairness objective function.
+        Generates the constraints objective function.
+        :return: The constraint objective function.
         """
 
-        msg_text = f"Generate a constraint satisfaction objective function that calculates the fairness of the output of the refined query, " \
+        msg_text = f"Generate a constraint satisfaction objective function that evaluates the constraint deviation " \
+                   f"for the output of the refined query, " \
                    f"based on the following description:\n\n{function_description}\n\n" \
-                   f"You are advised to use the following dataset description:\n\n{self.dataset_description}\n\n" \
+                   f"You are advised to use the following structure of a result dataset:\n\n{self.original_output.head(5)}\n\n" \
                    f"Note that a constraint can be somewhat satisfied, meaning that its deviation score is not necessarily 0 or 1.\n" \
                    "Most Importantly: The Inner function output MUST be a normalized float value, between 0 and 1,\n" \
                    "where 0 indicates that all constraints are satisfied and 1 indicates that " \
                    "none of the constraints are satisfied. To achieve this:" \
                    "1. Each of the constraints deviation score should be normalized to a value between 0 and 1.\n" \
-                   "2. The final fairness deviation score should be divided by the number of constraints.\n"
+                   "2. The final constraint deviation score should be divided by the number of constraints.\n" \
+                   "Ensure that the normalized score is a positive float that does not in any case exceed 1!\n"
 
         human_msg = HumanMessage(content=msg_text)
         resp = self.graph.invoke(
@@ -177,7 +173,7 @@ class ImplementationAgent:
         msg_text = f"Generate a refinement distance objective function that calculates the refinement " \
                    f"distance between the original query and the refined query, " \
                    f"based on the following description:\n\n{function_description}\n\n" \
-                   f"You are advised to use the following dataset description:\n\n{self.dataset_description}\n\n"
+                   f"You are advised to use the following structure of a result dataset:\n\n{self.original_output.head(5)}\n\n" \
 
         human_msg = HumanMessage(content=msg_text)
         resp = self.graph.invoke(
@@ -227,11 +223,11 @@ if __name__ == '__main__':
 
     function_description = "The output dataset should include no less than 40% female employees," \
                            "and no more than 30% of caucasian employees."
-    fairness_objective_getter = agent.generate_fairness_objective(function_description)
-    exec(fairness_objective_getter)
-    evaluate_fairness_deviation = eval("get_fairness_objective(dfs, original_query)")
+    constraints_objective_getter = agent.generate_constraints_objective(function_description)
+    exec(constraints_objective_getter)
+    evaluate_constraints_deviation = eval("get_constraints_satisfaction_objective(dfs, original_query)")
     print("Fairness deviation score:")
-    print(evaluate_fairness_deviation("SELECT * FROM texas_tribune WHERE MONTHLY >= 9000 AND MONTHLY <= 15000"))
+    print(evaluate_constraints_deviation("SELECT * FROM texas_tribune WHERE MONTHLY >= 9000 AND MONTHLY <= 15000"))
 
     print("\n")
 
