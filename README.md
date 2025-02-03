@@ -5,6 +5,12 @@
 This repository contains the reproducibility package for running our demo.
 For any issues regarding reproducibility or anything else using the implementation, please feel free to create a GitHub issue or send an Email.
 
+### Table of Contents:
+1. Requirements
+2. Configurations
+3. Usage
+4. Prompts & Prompt Templates
+
 ## 1. Requirements:
 The system runs on Python >= 3.11.6
 To install the required package, cd to main dir, then run:
@@ -14,7 +20,7 @@ To install the required package, cd to main dir, then run:
 The OmniTune UI is built upon the Streamlit[^1] package.
 For an optimal UI view, the preferred resultion is 1920 x 1080.
 
-## 2. Configurations:
+## 2. Configuration:
 OmniTune Demo currently supports only OpenAI models.
 Before running OmniTune locally, you should get an OpenAI API-Key[^2].
 Copy the API-Key paste it inplace of `<YOUR_OPENAI_API_KEY>` in the following line within the file **config.py**:
