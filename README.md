@@ -40,6 +40,7 @@ More about OpenAI API models pricing is provided [here](https://openai.com/api/p
 ### Using OmniTune:
 #### Step 1 - Select database and insert query:
 The left half of the OmniTune system on Step 1:
+
 <img width="650" alt="Step 1 - Left Half" src="https://github.com/user-attachments/assets/8ddfb79a-787b-41d3-b323-36390a642b14" />
 
 - To select a database from the provided list, press on the toggle arrow (1). 
