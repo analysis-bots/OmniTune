@@ -10,7 +10,7 @@
 4. [Usage](#usage)
 5. [Prompts & Prompt Templates](#prompts)
    - [System Prompts](#system_prompts)
-   - [User Prompts](#user_prompts)
+   - [User Prompt Templates](#user_prompts)
    - [Constraint Generation Prompts](#constraint_prompts)
 
 ## 1. Introduction: <a name="introduction"></a>
