@@ -17,6 +17,9 @@ For any issues regarding reproducibility or anything else using the implementati
 2. [Configurations](#config)
 3. [Usage](#usage)
 4. [Prompts & Prompt Templates](#prompts)
+   - [System Prompts](#system_prompts)
+   - [User Prompts](#user_prompts)
+   - [Constraint Generation Prompts](#constraint_prompts)
 
 ## 1. Requirements: <a name="requirements"></a>
 The system runs on Python >= 3.11.6
@@ -112,7 +115,8 @@ The left half of the OmniTune system on Step 2:
 
 ## 4. Prompt & Prompt Templates: <a name="prompts"></a>
 Below are provided the prompts and templates used by our Actor and Critic LLMs:
-### System Prompts:
+### System Prompts: <a name ="system_prompts"></a>
+Below are the prompts provided to each LLM prior to all other prompts, and define its overall role: 
 #### Actor:
 ```
 You are a smart research assistant. 
@@ -177,7 +181,10 @@ DO NOT Suggest any concrete refinements, nor suggest specific values to be used 
 Only provide instructions what should be checked from the dataset in order to provide a better refinement.
 ```
 
-### User Prompt Templates:
+### User Prompt Templates: <a name ="user_prompts"></a>
+
+Below are the prompts provided to each LLM on each refinement step, and depend on the current task at hand and the current Refinement History:
+
 #### Actor:
 ```
 You are an SQL coding assistant.
@@ -200,6 +207,9 @@ Given those instructions, the query refinement task is defined as follows:
 3. For each refinement you generate, you will receive a feedback on the validity, constraint satisfaction and refinement distance.
 Your task is to refine the query so that constraint satisfaction is met up to threshold = {epsilon}, while keeping the refinement distance minimal.
 
+4. Refinement History:
+{refienment_history}
+
 ====================================================================================================
 
 Before generating a new refined query, you must make sure the query was not tried before.
@@ -218,15 +228,7 @@ For example:
 The overall task is to find a valid refined query as close as possible to the original query (lower refinement distance),
 while its constraint deviation score should stay lower than {epsilon} - it does not have to be the lowest possible!
 
-Based on your findings from the dataset, answer those intriguing questions before providing your final refinement:
-For numerical alterable predicates (if exist in the query): 
-- [Should we Lower / Raise the value of the predicate?]
-- [By how much?]
-- [Explain why! based on your findings from the dataset]
-For categorical alterable predicates (if exist in the query): 
-- [Should we Include / Exclude categories from the predicate?]
-- [Which ones?]
-- [Explain why! based on your findings from the dataset]
+Based on your findings from the dataset, answer the provided questions in the instructions below before providing your final refinement.
 
 Once you have reached a satisfactory refinement, provide your final output in the following format:
 [Provide a brief explanation of which python queries you ran on the dataset and why,
@@ -236,12 +238,10 @@ Once you have reached a satisfactory refinement, provide your final output in th
 [Insert your final refined SQL query here]
 \```
 
-Important: You should usually refine more than one predicate to reach a valid refinement, so try cross-examining
-different combinations of values for the allowed attributes to find the best refinement.
-
-YOU ARE NOT ALLOWED TO ADD OR REMOVE ANY CONDITIONS FROM THE ORIGINAL QUERY. ONLY MODIFY THE EXISTING CONDITIONS.
-
 Note that this is a multi-objective optimization problem, where you need to BALANCE between the two objectives.
+
+Provide your refinement using the below instructions:
+{critic_instructions}
 ```
 
 #### Critic:
@@ -251,9 +251,6 @@ Below are instructions to refine the query Q below into a Minimal-Refined query 
 
 For your convenience, the Dataset's relevant columns and their types are:
 {alterable_attributes}
-
-Important: Make it clear to the Actor that the above attributes are the ONLY predicates it is allowed to change their value.
-And no other attributes should be added or removed from the query.
  
 Important: DO NOT suggest any actual values, only guide the actor to how you suggest to explore the dataset to find the 
 right values, given the constraints and requirements on query structure.
@@ -266,17 +263,18 @@ Given those instructions, the query refinement task is defined as follows:
 2. Minimizing Refinement Distance:
 {refinement_objective_str}
 
-
 3. Satisfying Constraints:
 The following constraint(s) C that should be satisfied by the output dataset Q'(D):
 {constraints_str} 
 - The refined query should ensure the constraint deviation is less than threshold = {epsilon}.
 
-4. Your task is to provide natural language feedback on the refinement, without suggesting any explicit SQL queries,
-   so that the next refinement would most likely satisfy the constraints while keeping the refinement distance minimal.
-
+4. Refinement History:
+{refienment_history}
 
 ====================================================================================================
+
+Your task is to provide natural language feedback on the refinement, without suggesting any explicit SQL queries,
+so that the next refinement would most likely satisfy the constraints while keeping the refinement distance minimal.
 
 Before providing your refinement instructions, you may utilize the tools you are equipped with to 
 evaluate the constraint deviation of the refined query using the 'get_constraints_deviation' tool
@@ -304,20 +302,98 @@ For categorical alterable predicates (if exist in the query):
 Then, you should provide feedback on the refinement, focusing on the validity and constraints satisfaction of the refined query,
 w.r.t. the constraints and the constraints deviation threshold, in comparison to all previous refinements provided to you.
 
-As a critic, your role is to evaluate the actor's decisions and provide actionable feedback. Remember that the actor has the ability to run simple one-liner pandas queries on the dataset to extract insights. When suggesting improvements for the next refinement:
-a. Identify specific aspects of the dataset that the actor should explore further.
-b. Suggest concrete pandas queries that the actor can run to discover values to include or exclude.
-c. Emphasize using these queries to deduce patterns, ranges, or categories that align with the constraints (even though the actor does not directly receive the constraints).
-d. If the actor added a predicate that invalidates the query, tell it plainly that adding predicates is wrong and they must remove it.
-
-Note that this is a multi-objective optimization problem, where a BALANCE between the two objectives is essential.
-
-For example, if the actor tried multiple values above the original for a certain predicate, you must suggest
-trying values below the original to minimize the refinement distance, and vice versa.
-Only instruct what should be checked from the dataset in order to provide a better refinement.
-
-DO NOT Suggest any concrete refinements, nor suggest specific values to be used in the refinement.
+Please provide your feedback and instructions based on the below refinement:
+{actor_refienment}
 ```
 
+### Constraint Generation Prompts: <a name ="constraint_prompts"></a>
+
+The prompts below receive the constraints description in natural language from the user, and generate components to analyze the refinement according to the constraints accordnigly.
+
+#### Constraint Satisfaction Function:
+Below is the prompt provided to the LLM to generate the constraints according to the user-provided description:
+```
+You are a python function implementation agent.
+The function can use only the pandas library and the below explicitly provided tools. NO NUMPY!
+
+You are responsible for generating the following nested function to assess the quality of a refined query:
+You will be provided with a list of constraints that the output of the refined query should satisfy.
+Given this list, you need to implement a function that calculates the deviation of the output of the refined query from satisfying a set of constraints.
+The deviation should be a weighted sum of the constraints that are not satisfied, and if not provided
+explicitly, the constraints should be assumed to be equally weighted. Then, for each constraint,
+the deviation should represent the absolute difference between the required constraint and the actual value
+in the output of the refined query. The constraints deviation score should be a non-negative float,
+where a lower value indicates a better quality.
+
+The Inner function output MUST be a normalized float value between 0 and 1,
+where 0 indicates that all constraints are satisfied and 1 indicates that none of the constraints are satisfied.
+The outer function shall return the inner function as a runnable function.
+The nested function signatures are to be as follows:
+    - Outer function signature: get_constraints_satisfaction_objective(d_in: dict[str, pd.DataFrame], original_query: str)
+    - Inner function signature: constraints_satisfaction_objective(refined_query: str) -> float (constraints deviation score)
+This way, a task specific inner function can be re-used multiple times with various refined queries along the refinement
+process.
+
+Within the function, you will have access to the dataset and the original query as a dictionary of string to pandas dataframe.
+You are also provided with a class called SQLEngineAdvanced that can be used to execute SQL queries on the dataset 
+in the following way:
+
+\```python 
+    sql_engine = SQLEngineAdvanced(d_in_dict)
+    resp_df, error = sql_engine.execute(query)
+    if error:
+        return "An error occurred: " + resp_df
+    return resp_df
+\```
+
+Using the SQLEngineAdvanced class, you can execute SQL queries on the dataset and get the result as a pandas dataframe,
+to further use to assess the quality of the refined query's output.
+
+Given the above instructions, generate a constraint satisfaction objective function, based on the following description:
+{function_description}
+You are advised to use the following structure of a result dataset:
+{original_output.head(5)}
+Note that a constraint can be somewhat satisfied, meaning that its deviation score is not necessarily 0 or 1.
+Most Importantly: The Inner function output MUST be a normalized float value, between 0 and 1,
+where 0 indicates that all constraints are satisfied and 1 indicates that none of the constraints are satisfied. To achieve this:
+ 1. Each of the constraints deviation score should be normalized to a value between 0 and 1.
+ 2. The final constraint deviation score should be divided by the number of constraints.
+Ensure that the normalized score is a positive float that does not in any case exceed 1!
+```
+
+#### Constraint-wise Analysis:
+```
+You are an agent responsible for parsing constraints from a user query.
+You receive a string containing the constraints and should return a list of constraints, as follows:
+- Each constraint should be a dictionary with the following keys:
+    * query (str): a callable query that accepts the dataframe as input and returns a numeric value. 
+                    the query should refer to the dataframe as 'df' and should return a numeric value 
+                    that represents the constraint evaluation over the dataframe. 
+                    For example, if the constraint is:
+                    "the number of rows out of the top 10 rows where column 'A' has value 'B' must be more than 5"
+                    the query should be: "sum(df[:10]['A'] == 'B')"  
+    * description (str): a description of the query, i.e. the measurable term of the constraint in natural language.
+                        For example, "The number of top 10 employees for which 'A' is 'B'"
+    * symbol (str): the comparison operator ("<", ">", "<=" or ">=")
+    * desired_value (int or float): the (minimum / maximum) value that must satisfy the constraint 
+- The constraints should be returned as a list of dictionaries:
+    [
+        {'query': query1, 'description': description1, 'symbol': symbol1, 'desired_value': desired_value1},
+        ...
+        {'query': queryN, 'description': descriptionN, 'symbol': symbolN, 'desired_value': desired_valueN}
+    ]
+
+Use the 'get_dataset_information' tool provided to you to extract precise value names or ranges for each of the relevant specific columns in the result df of the original query.
+Do not use any libraries other than pandas.
+
+For structural reference, here is an example of the original query result:
+{original_query_result_df_head}
+
+Parse the following constraints as a list of dictionaries in the JSON format described above.
+Ensure the response is properly structured JSON.
+Implement the query code-lines ONLY using pandas functions and operations, any other libraries or functions will not be supported.
+Constraints:
+{user_constraints_description}
+```
 [^1]: https://github.com/streamlit/streamlit
 [^2]: https://platform.openai.com/api-keys
