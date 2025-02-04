@@ -2,7 +2,18 @@
 
 ![OmniTune](https://github.com/user-attachments/assets/3b4856d1-9c4b-4b79-bee9-b518a3deca58)
 
-## Introduction:
+
+### Table of Contents:
+1. [Introduction](#introduction)
+2. [Requirements](#requirements)
+3. [Configurations](#config)
+4. [Usage](#usage)
+5. [Prompts & Prompt Templates](#prompts)
+   - [System Prompts](#system_prompts)
+   - [User Prompts](#user_prompts)
+   - [Constraint Generation Prompts](#constraint_prompts)
+
+## 1. Introduction: <a name="introduction"></a>
 OmniTune is a novel universal framework for query refinement using an LLM multi-agent approach. 
 The architecture of OmniTune consists of two main components:
 1. The Refinement Problem Wizard; helps users formulate a valid, universal refinement problem.
@@ -13,16 +24,7 @@ The architecture of OmniTune consists of two main components:
 This repository contains the reproducibility package for running our demo.
 For any issues regarding reproducibility or anything else using the implementation, please feel free to create a GitHub issue or send an Email.
 
-### Table of Contents:
-1. [Requirements](#requirements)
-2. [Configurations](#config)
-3. [Usage](#usage)
-4. [Prompts & Prompt Templates](#prompts)
-   - [System Prompts](#system_prompts)
-   - [User Prompts](#user_prompts)
-   - [Constraint Generation Prompts](#constraint_prompts)
-
-## 1. Requirements: <a name="requirements"></a>
+## 2. Requirements: <a name="requirements"></a>
 The system runs on Python >= 3.11.6
 To install the required package, cd to main dir, then run:
 
@@ -31,7 +33,7 @@ To install the required package, cd to main dir, then run:
 The OmniTune UI is built upon the Streamlit[^1] package.
 For an optimal UI view, the preferred resultion is 1920 x 1080.
 
-## 2. Configuration: <a name="config"></a>
+## 3. Configuration: <a name="config"></a>
 OmniTune Demo currently supports only OpenAI models.
 Before running OmniTune locally, you should get an OpenAI API-Key[^2].
 Copy the API-Key paste it inplace of `<YOUR_OPENAI_API_KEY>` in the following line within the file **config.py**:
@@ -45,7 +47,7 @@ If you would like to test it with any other model by OpenAI, you may do it using
 More about OpenAI API models pricing is provided [here](https://openai.com/api/pricing/).
  
 
-## 3. Usage: <a name="usage"></a>
+## 4. Usage: <a name="usage"></a>
 
 ### Running OmniTune:
 1. Make sure Streamlit is installed successfully:
@@ -114,7 +116,7 @@ The left half of the OmniTune system on Step 2:
   
 [For a step-by-step tutorial for OmniTune we invite you to watch our tutorial video (Click Here)](tinyurl.com/OmniTune).
 
-## 4. Prompt & Prompt Templates: <a name="prompts"></a>
+## 5. Prompt & Prompt Templates: <a name="prompts"></a>
 Below are provided the prompts and templates used by our Actor and Critic LLMs:
 ### System Prompts: <a name ="system_prompts"></a>
 Below are the prompts provided to each LLM prior to all other prompts, and define its overall role: 
