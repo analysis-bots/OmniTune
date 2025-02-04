@@ -13,12 +13,12 @@ This repository contains the reproducibility package for running our demo.
 For any issues regarding reproducibility or anything else using the implementation, please feel free to create a GitHub issue or send an Email.
 
 ### Table of Contents:
-1. Requirements
-2. Configurations
-3. Usage
-4. Prompts & Prompt Templates
+1. [Requirements](#requirements)
+2. [Configurations](#config)
+3. [Usage](#usage)
+4. [Prompts & Prompt Templates](#prompts)
 
-## 1. Requirements:
+## 1. Requirements: <a name="requirements"></a>
 The system runs on Python >= 3.11.6
 To install the required package, cd to main dir, then run:
 
@@ -27,7 +27,7 @@ To install the required package, cd to main dir, then run:
 The OmniTune UI is built upon the Streamlit[^1] package.
 For an optimal UI view, the preferred resultion is 1920 x 1080.
 
-## 2. Configuration:
+## 2. Configuration: <a name="config"></a>
 OmniTune Demo currently supports only OpenAI models.
 Before running OmniTune locally, you should get an OpenAI API-Key[^2].
 Copy the API-Key paste it inplace of `<YOUR_OPENAI_API_KEY>` in the following line within the file **config.py**:
@@ -41,7 +41,7 @@ If you would like to test it with any other model by OpenAI, you may do it using
 More about OpenAI API models pricing is provided [here](https://openai.com/api/pricing/).
  
 
-## 3. Usage:
+## 3. Usage: <a name="usage"></a>
 
 ### Running OmniTune:
 1. Make sure Streamlit is installed successfully:
@@ -110,7 +110,7 @@ The left half of the OmniTune system on Step 2:
   
 [For a step-by-step tutorial for OmniTune we invite you to watch our tutorial video (Click Here)](tinyurl.com/OmniTune).
 
-## 4. Prompt & Prompt Templates: 
+## 4. Prompt & Prompt Templates: <a name="prompts"></a>
 Below are provided the prompts and templates used by our Actor and Critic LLMs:
 ### System Prompts:
 #### Actor:
