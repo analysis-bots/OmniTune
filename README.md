@@ -19,7 +19,7 @@ The architecture of OmniTune consists of two main components:
 1. The Refinement Problem Wizard; helps users formulate a valid, universal refinement problem.
 2. The OmniTune Refinement Engine; builds upon the Actor-Critic paradigm adapted into an LLM multi-agent architecture, and used to effectively refine the input query.
 
-<img width="780" alt="OmniTune Workflow" src="https://github.com/user-attachments/assets/f9317983-d09d-4495-83d7-0ac7a5704ad8" />
+<img width="780" alt="OmniTune Workflow" src="https://github.com/user-attachments/assets/569f4f0d-8973-402d-92c8-7e40f8f97a6d" />
 
 This repository contains the reproducibility package for running our demo.
 For any issues regarding reproducibility or anything else using the implementation, please feel free to create a GitHub issue or send an Email.
