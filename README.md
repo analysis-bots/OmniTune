@@ -1,5 +1,7 @@
 # OmniTune: A Universal LLM Framework for General Query Refinements
 
+<img width="825" height="270" alt="Screenshot 2025-12-06 at 22 04 00" src="https://github.com/user-attachments/assets/b527ba80-532b-4dc9-85ea-8e107f3d89ca" />
+
 OmniTune is a **universal framework for SQL query refinement** based on **LLM‑driven Optimization by Prompting (OPRO)**. Given a database, an input SQL query, and user‑defined notions of refinement distance and constraint deviation, OmniTune searches for refined queries that remain close to the original while approximately satisfying user constraints.
 
 OmniTune implements the **two‑step OPRO scheme** introduced in the paper:
