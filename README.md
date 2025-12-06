@@ -43,8 +43,7 @@ You can run OmniTune either using **Docker** (recommended for reproducibility an
 1. Clone the repository:
 
    ```bash
-   git clone <repository-url>
-   cd omnitune2
+   git clone https://github.com/analysis-bots/OmniTune.git
    ```
 
 2. Create a `.env` file with your API keys:
