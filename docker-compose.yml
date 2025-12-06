@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  omnitune:
+    build: .
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      LOG_DIR: /app/logs
+      OUT_PATH: /app/exports
+      # Optionally set API keys inline instead of .env:
+      # OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      # CLAUDE_API_KEY: ${CLAUDE_API_KEY}
+      # CF_API_KEY: ${CF_API_KEY}
+      # CF_ACCOUNT_ID: ${CF_ACCOUNT_ID}
+    volumes:
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+      # Mount datasets if needed:
+      # - ./datasets:/app/datasets:ro
+    command: ["python", "main.py", "-h"]
