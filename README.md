@@ -26,8 +26,6 @@ This repository includes:
   * Ablation studies (Two‑Step OPRO; Skyline/History components)
   * Parameter‑sensitivity experiments over horizon (T) and samples (K)
     
----
-
 ## Table of Contents
 - [🚀 Getting Started](#%F0%9F%9A%80-getting-started)
   * [Prerequisites](#prerequisites)
@@ -54,7 +52,8 @@ This repository includes:
 - [🧠 Core Prompt Sketches](#%F0%9F%A7%A0-core-prompt-sketches)
   * [1. AssignmentLM](#1-assignmentlm)
   * [2. SubspaceLM](#2-subspacelm)
-    
+---
+
 ## 🚀 Getting Started
 
 You can run OmniTune either using **Docker** (recommended for reproducibility and artifact evaluation) or directly via **Python 3.11+**.
