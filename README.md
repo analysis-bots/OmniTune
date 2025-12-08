@@ -26,8 +26,6 @@ This repository includes:
   * Ablation studies (Two‑Step OPRO; Skyline/History components)
   * Parameter‑sensitivity experiments over horizon (T) and samples (K)
 
----
-
 ## Table of Contents
 - [🚀 Getting Started](#%F0%9F%9A%80-getting-started)
   * [Prerequisites](#prerequisites)
