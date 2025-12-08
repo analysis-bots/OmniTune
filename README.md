@@ -28,6 +28,35 @@ This repository includes:
 
 ---
 
+## Table of Contents
+- [🚀 Getting Started](#%F0%9F%9A%80-getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Environment Setup](#environment-setup)
+- [🐳 Running with Docker](#%F0%9F%90%B3-running-with-docker)
+  * [1. Build the Docker Image](#1-build-the-docker-image)
+  * [2. Run Experiments](#2-run-experiments)
+    + [**Direct Docker Run Example (Ablation Study)**](#direct-docker-run-example-ablation-study)
+    + [**Using Docker Compose (Main Comparison Example)**](#using-docker-compose-main-comparison-example)
+- [🐍 Running Locally (Without Docker)](#%F0%9F%90%8D-running-locally-without-docker)
+- [🧪 Experiment Types](#%F0%9F%A7%AA-experiment-types)
+  * [1. **Main Comparison (`comparison`)**](#1-main-comparison-comparison)
+  * [2. **Ablation Studies (`ablation`)**](#2-ablation-studies-ablation)
+  * [3. **Parameter Experiments (`parameters`)**](#3-parameter-experiments-parameters)
+- [🧪 Command Examples](#%F0%9F%A7%AA-command-examples)
+  * [1. Run an Ablation Study](#1-run-an-ablation-study)
+  * [2. Run the Main Comparison (with plots)](#2-run-the-main-comparison-with-plots)
+  * [3. Parameter Grid Search (T, K)](#3-parameter-grid-search-t-k)
+- [🎛 CLI Arguments](#%F0%9F%8E%9B-cli-arguments)
+- [📝 Prompt Template Documentation](#%F0%9F%93%9D-prompt-template-documentation)
+  * [• **SubspaceLM** – proposes refinement subspaces (\Theta_t)](#%E2%80%A2-subspacelm-%E2%80%93-proposes-refinement-subspaces-theta_t)
+  * [• **AssignmentLM** – generates refined predicate assignments (\theta \in \Theta_t)](#%E2%80%A2-assignmentlm-%E2%80%93-generates-refined-predicate-assignments-theta-in-theta_t)
+  * [Common Template Variables](#common-template-variables)
+- [🧠 Core Prompt Sketches](#%F0%9F%A7%A0-core-prompt-sketches)
+  * [1. AssignmentLM](#1-assignmentlm)
+  * [2. SubspaceLM](#2-subspacelm)
+    
+---
+
 ## 🚀 Getting Started
 
 You can run OmniTune either using **Docker** (recommended for reproducibility and artifact evaluation) or directly via **Python 3.11+**.
