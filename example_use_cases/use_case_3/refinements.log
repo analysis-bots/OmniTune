@@ -1,0 +1,43 @@
+[Subspace] t=2 numeric={'HRSWKD > ': (25, 40), 'ANNUAL > ': (45000, 55000), 'pr >= ': (0.30, 0.85), 'pr <= ': (0.45, 0.95)} categorical={} acc_tokens_total=0
+
+[Refinement] k=0 sql=WITH ranked AS (
+  SELECT *,
+    PERCENT_RANK() OVER (...) AS pr
+  FROM TexasTribune
+  WHERE HRSWKD > 30
+    AND ANNUAL > 50000
+)
+SELECT ETHNICITY,
+  AVG(ANNUAL) AS avg_annual,
+  SUM(MONTHLY) AS total_monthly
+FROM ranked
+WHERE pr >= 0.35 AND pr <= 0.90
+GROUP BY ETHNICITY; agg=0.29 d=0.16 acc_tokens_total=1000
+
+[Refinement] k=1 sql=WITH ranked AS (
+  SELECT *,
+    PERCENT_RANK() OVER (...) AS pr
+  FROM TexasTribune
+  WHERE HRSWKD > 25
+    AND ANNUAL > 48000
+)
+SELECT ETHNICITY,
+  AVG(ANNUAL) AS avg_annual,
+  SUM(MONTHLY) AS total_monthly
+FROM ranked
+WHERE pr >= 0.30 AND pr <= 0.92
+GROUP BY ETHNICITY; agg=0.00 d=0.18 acc_tokens_total=2000
+
+[Refinement] k=2 sql=WITH ranked AS (
+  SELECT *,
+    PERCENT_RANK() OVER (...) AS pr
+  FROM TexasTribune
+  WHERE HRSWKD > 35
+    AND ANNUAL > 52000
+)
+SELECT ETHNICITY,
+  AVG(ANNUAL) AS avg_annual,
+  SUM(MONTHLY) AS total_monthly
+FROM ranked
+WHERE pr >= 0.40 AND pr <= 0.85
+GROUP BY ETHNICITY; agg=0.34 d=0.14 acc_tokens_total=3000

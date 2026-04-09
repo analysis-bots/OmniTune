@@ -1,0 +1,6 @@
+segment,customer,cnt,avg_price
+beauty,cust_001,6,320
+sports,cust_014,7,450
+beauty,cust_022,6,380
+sports,cust_031,8,390
+sports,cust_044,6,385

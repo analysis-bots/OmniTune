@@ -1,0 +1,37 @@
+[Subspace] t=2 numeric={'sqft >= ': (1400, 1600), 'COUNT(*) >= ': (15, 25), 'AVG(price) <= ': (750000, 850000)} categorical={'type IN': [{'sfr', 'condo'}, {'sfr', 'condo', 'townhouse'}]} acc_tokens_total=0
+
+[Refinement] k=0 sql=SELECT city, price, sqft, type
+FROM HomesForSale
+WHERE sqft >= 1450
+  AND type IN ('sfr', 'condo')
+  AND city IN (
+    SELECT city
+    FROM HomesForSale
+    GROUP BY city
+    HAVING COUNT(*) >= 18
+      AND AVG(price) <= 800000
+  ); agg=0.24 d=0.13 acc_tokens_total=1000
+
+[Refinement] k=1 sql=SELECT city, price, sqft, type
+FROM HomesForSale
+WHERE sqft >= 1400
+  AND type IN ('sfr', 'condo', 'townhouse')
+  AND city IN (
+    SELECT city
+    FROM HomesForSale
+    GROUP BY city
+    HAVING COUNT(*) >= 15
+      AND AVG(price) <= 820000
+  ); agg=0.00 d=0.11 acc_tokens_total=2000
+
+[Refinement] k=2 sql=SELECT city, price, sqft, type
+FROM HomesForSale
+WHERE sqft >= 1500
+  AND type IN ('sfr', 'condo')
+  AND city IN (
+    SELECT city
+    FROM HomesForSale
+    GROUP BY city
+    HAVING COUNT(*) >= 17
+      AND AVG(price) <= 780000
+  ); agg=0.19 d=0.10 acc_tokens_total=3000

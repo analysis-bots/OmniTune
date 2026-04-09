@@ -1,0 +1,29 @@
+[Subspace] t=1 numeric={'COUNT(*) >= ': (2, 6), 'avg_price >= ': (200, 500), 'avg_price <= ': (700, 900)} categorical={} acc_tokens_total=0
+
+[Refinement] k=0 sql=SELECT segment, customer, COUNT(*) AS cnt, AVG(price) AS avg_price
+FROM Olist joins
+GROUP BY segment, customer
+HAVING COUNT(*) >= 3
+  AND avg_price >= 400
+  AND avg_price <= 900; agg=0.00 d=0.32 acc_tokens_total=1000
+
+[Refinement] k=1 sql=SELECT segment, customer, COUNT(*) AS cnt, AVG(price) AS avg_price
+FROM Olist joins
+GROUP BY segment, customer
+HAVING COUNT(*) >= 2
+  AND avg_price >= 300
+  AND avg_price <= 700; agg=0.29 d=0.38 acc_tokens_total=2000
+
+[Refinement] k=2 sql=SELECT segment, customer, COUNT(*) AS cnt, AVG(price) AS avg_price
+FROM Olist joins
+GROUP BY segment, customer
+HAVING COUNT(*) >= 2
+  AND avg_price >= 300
+  AND avg_price <= 800; agg=0.33 d=0.33 acc_tokens_total=3000
+
+[Refinement] k=3 sql=SELECT segment, customer, COUNT(*) AS cnt, AVG(price) AS avg_price
+FROM Olist joins
+GROUP BY segment, customer
+HAVING COUNT(*) >= 3
+  AND avg_price >= 400
+  AND avg_price <= 700; agg=0.24 d=0.54 acc_tokens_total=4000

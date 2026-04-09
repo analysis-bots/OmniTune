@@ -1,0 +1,7 @@
+segment,customer,cnt,avg_price
+beauty,cust_001,3,520
+sports,cust_014,4,560
+books,cust_022,3,510
+toys,cust_031,5,570
+electronics,cust_044,4,540
+home,cust_052,3,545
