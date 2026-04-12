@@ -13,7 +13,6 @@ ROOT_DIR = Path("../logs/log_dir_oct_16_gpt_41_mini_stress_test_range")  # chang
 TARGET_BASENAME = "clean_responses.log" # the exact file name to discover
 WRITE_AGGREGATE = False                  # set False to skip the combined CSV
 
-# --- Regexes updated to reflect Eldar's log format ---
 ITER_START_RE = re.compile(r'^\[Subspace\]\s*t\s*=\s*1\b', re.IGNORECASE)
 SUBSPACE_LINE_RE = re.compile(r'^\[Subspace\]', re.IGNORECASE)
 REFINEMENT_LINE_RE = re.compile(r'^\[Refinement\]', re.IGNORECASE)
