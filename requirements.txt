@@ -11,3 +11,4 @@ pandas==2.2.2
 pandasql==0.7.3
 sqlglot==25.3.0
 sqlparse==0.4.4
+python-dotenv==1.0.1

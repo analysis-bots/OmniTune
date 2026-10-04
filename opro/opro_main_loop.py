@@ -56,7 +56,8 @@ class OmniTuneEngine:
             use_history: bool = True,
             use_skyline: bool = True,
             model_provider: Optional[str] = None,
-            model_name: Optional[str] = None
+            model_name: Optional[str] = None,
+            one_shot_max_iterations: int = 10
     ):
         """
         Initialize the refinement orchestrator.
@@ -101,6 +102,7 @@ class OmniTuneEngine:
         self.subspace_lm_only_random = subspace_lm_only_random
         self._rng = random.Random(random_seed) if random_seed is not None else random
         self.one_shot_mode = one_shot_mode
+        self.one_shot_max_iterations = one_shot_max_iterations
         self.is_having_query = is_having_query
         self.refineable_predicates_context_json = None
         self.use_history = use_history
@@ -657,16 +659,16 @@ Focus on keeping all constraints satisfied while improving the distance metric.
 
     def _run_one_shot(self) -> tuple[str | None, float, int]:
         """
-        Run one-shot LLM baseline with iterative feedback: runs 10 iterations with conversation
-        history, providing feedback (constraint score + distance) after each attempt.
+        Run the direct LLM baseline with iterative feedback for the configured
+        number of attempts, retaining conversation history and local scores.
         
         Returns:
             Tuple of (best_query, best_distance, total_tokens)
         """
-        ONE_SHOT_MAX_ITERATIONS = 10
+        ONE_SHOT_MAX_ITERATIONS = self.one_shot_max_iterations
         
         print("=" * 80)
-        print("RUNNING IN ONE-SHOT ITERATIVE MODE (10 iterations)")
+        print(f"RUNNING IN ONE-SHOT ITERATIVE MODE ({ONE_SHOT_MAX_ITERATIONS} iterations)")
         print("LLM will iteratively refine solutions with feedback")
         print("=" * 80)
         
@@ -1264,7 +1266,8 @@ def run_task(task: Union[Task, AgnosticTask],
              log_dir: Optional[str] = None,
              use_skyline: bool = True,
              model_provider: Optional[str] = None,
-             model_name: Optional[str] = None
+             model_name: Optional[str] = None,
+             one_shot_max_iterations: int = 10
              ) -> Tuple[str, float, int]:
     """
     Run a refinement task with the given parameters.
@@ -1320,6 +1323,7 @@ def run_task(task: Union[Task, AgnosticTask],
         subspace_lm_only_random=subspace_lm_only_random,
         random_seed=random_seed,
         one_shot_mode=one_shot_mode,
+        one_shot_max_iterations=one_shot_max_iterations,
         is_having_query=is_having,
         log_dir=log_dir,
         use_history=use_history,
